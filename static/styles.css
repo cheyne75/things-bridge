@@ -331,6 +331,78 @@ header h1 {
     display: none;
 }
 
+/* Drag handle */
+.drag-handle {
+    flex-shrink: 0;
+    width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: #c8c8cc;
+    font-size: 14px;
+    letter-spacing: 2px;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding-top: 1px;
+}
+
+.task:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Dragging state */
+.task.dragging {
+    opacity: 0.3;
+    background: var(--bg-secondary);
+}
+
+/* Drop indicator */
+.drop-indicator {
+    height: 2px;
+    background: var(--accent);
+    margin: 0 20px;
+    border-radius: 1px;
+    pointer-events: none;
+}
+
+/* Sync bar */
+#sync-bar {
+    padding: 16px 20px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+
+#sync-bar.hidden {
+    display: none;
+}
+
+#sync-order-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#sync-order-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+#sync-order-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 /* Loading animation on checkbox */
 .task-checkbox input[type="checkbox"].completing {
     border-color: var(--accent);
