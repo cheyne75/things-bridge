@@ -1,11 +1,15 @@
 import asyncio
+import json
 import subprocess
 from datetime import date
+from pathlib import Path
 from urllib.parse import quote
 
 import things
 
 import config
+
+ORDER_FILE = Path(__file__).parent / "order.json"
 
 _write_lock = asyncio.Lock()
 
@@ -16,16 +20,52 @@ def _normalize_task(task: dict) -> dict:
         "title": task.get("title", ""),
         "notes": task.get("notes", ""),
         "status": task.get("status", "incomplete"),
+        "today_index": task.get("today_index", 0),
     }
+
+
+def load_order() -> list[str]:
+    try:
+        data = json.loads(ORDER_FILE.read_text())
+        return data.get("order", [])
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return []
+
+
+def save_order(order: list[str]) -> None:
+    ORDER_FILE.write_text(json.dumps({"order": order}, indent=2))
+
+
+def clear_order() -> None:
+    try:
+        ORDER_FILE.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def get_today_tasks() -> list[dict]:
     incomplete = things.today()
     today_str = date.today().isoformat()
     completed = things.completed(stop_date=today_str)
-    result = [_normalize_task(t) for t in incomplete]
-    result += [_normalize_task(t) for t in completed]
-    return result
+
+    saved_order = load_order()
+    task_map = {t["uuid"]: t for t in incomplete}
+
+    # Tasks in saved order that still exist
+    ordered = []
+    for uuid in saved_order:
+        if uuid in task_map:
+            ordered.append(_normalize_task(task_map.pop(uuid)))
+
+    # New tasks not in saved order, in Things' native order
+    for t in incomplete:
+        if t["uuid"] in task_map:
+            ordered.append(_normalize_task(t))
+
+    # Completed tasks at the end
+    ordered += [_normalize_task(t) for t in completed]
+
+    return ordered
 
 
 def _complete_task(uuid: str) -> bool:

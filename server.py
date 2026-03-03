@@ -15,7 +15,7 @@ app = FastAPI(title="Things Bridge", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
     allow_headers=["X-Things-Token", "Content-Type"],
 )
 
@@ -41,6 +41,10 @@ class TaskCreate(BaseModel):
 
 class TaskUpdate(BaseModel):
     notes: str
+
+
+class OrderUpdate(BaseModel):
+    order: list[str]
 
 
 @app.get("/health")
@@ -79,6 +83,18 @@ async def complete_task(uuid: str):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to complete task")
     return {"status": "completed", "uuid": uuid}
+
+
+@api.put("/order")
+async def update_order(body: OrderUpdate):
+    things_bridge.save_order(body.order)
+    return {"status": "updated", "count": len(body.order)}
+
+
+@api.delete("/order")
+async def reset_order():
+    things_bridge.clear_order()
+    return {"status": "cleared"}
 
 
 app.include_router(api)
