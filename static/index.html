@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Things Today</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="token-prompt">
+            <div class="token-card">
+                <h2>Things Bridge</h2>
+                <p>Enter your API token to connect.</p>
+                <input type="password" id="token-input" placeholder="API token" autocomplete="off" autofocus>
+                <div id="token-error" class="hidden"></div>
+                <button id="token-save">Connect</button>
+            </div>
+        </div>
+        <div id="main" class="hidden">
+            <header>
+                <h1>Today</h1>
+                <button id="add-task-btn" title="Add Task">+</button>
+            </header>
+            <div id="add-task-form" class="hidden">
+                <input type="text" id="new-task-title" placeholder="New To-Do">
+                <div class="add-task-actions">
+                    <button id="cancel-task-btn" class="btn-cancel">Cancel</button>
+                    <button id="create-task-btn" class="btn-create">Add</button>
+                </div>
+            </div>
+            <div id="task-list"></div>
+            <div id="empty-state" class="hidden">
+                <p>Nothing for today.</p>
+            </div>
+        </div>
+    </div>
+    <script src="/app.js"></script>
+</body>
+</html>

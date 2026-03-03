@@ -1,0 +1,343 @@
+:root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f7;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent: #4a90d9;
+    --accent-hover: #3a7bc8;
+    --border: #e5e5e7;
+    --checkbox-size: 22px;
+    --danger: #e55;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+#app {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+}
+
+/* Token prompt */
+#token-prompt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+#token-prompt.hidden {
+    display: none;
+}
+
+.token-card {
+    text-align: center;
+    padding: 40px;
+}
+
+.token-card h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.token-card p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.token-card input {
+    display: block;
+    width: 280px;
+    margin: 0 auto 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.token-card input:focus {
+    border-color: var(--accent);
+}
+
+#token-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+#token-error.hidden {
+    display: none;
+}
+
+.token-card button {
+    padding: 10px 32px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.token-card button:hover {
+    background: var(--accent-hover);
+}
+
+/* Main area */
+#main.hidden {
+    display: none;
+}
+
+header {
+    padding: 28px 20px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+#add-task-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+#add-task-btn:hover {
+    background: var(--accent-hover);
+}
+
+/* Add task form */
+#add-task-form {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
+#add-task-form.hidden {
+    display: none;
+}
+
+#new-task-title {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 10px;
+    background: var(--bg);
+}
+
+#new-task-title:focus {
+    border-color: var(--accent);
+}
+
+.add-task-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-create {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-cancel {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.btn-cancel:hover {
+    background: #d5d5d7;
+}
+
+.btn-create {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-create:hover {
+    background: var(--accent-hover);
+}
+
+/* Task list */
+#task-list {
+    min-height: 200px;
+}
+
+.task {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    transition: opacity 0.3s;
+}
+
+.task:last-child {
+    border-bottom: none;
+}
+
+.task.completed {
+    opacity: 0.45;
+}
+
+/* Round checkbox */
+.task-checkbox {
+    flex-shrink: 0;
+    padding-top: 1px;
+}
+
+.task-checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: var(--checkbox-size);
+    height: var(--checkbox-size);
+    border: 2px solid #c8c8cc;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.task-checkbox input[type="checkbox"]:hover {
+    border-color: var(--accent);
+}
+
+.task-checkbox input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.task-checkbox input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Task content */
+.task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-title {
+    font-size: 15px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.task.completed .task-title {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.task-notes {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-top: 2px;
+    min-height: 0;
+    outline: none;
+    padding: 2px 0;
+    border-radius: 4px;
+    transition: background 0.2s;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.task-notes:empty::before {
+    content: "Add notes...";
+    color: #c8c8cc;
+}
+
+.task-notes:focus {
+    background: var(--bg-secondary);
+    padding: 4px 6px;
+    margin: 0 -6px;
+}
+
+.task.completed .task-notes {
+    pointer-events: none;
+}
+
+.task.completed .task-notes:empty::before {
+    content: "";
+}
+
+/* Completed divider */
+.completed-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 20px;
+}
+
+/* Empty state */
+#empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 15px;
+}
+
+#empty-state.hidden {
+    display: none;
+}
+
+/* Loading animation on checkbox */
+.task-checkbox input[type="checkbox"].completing {
+    border-color: var(--accent);
+    animation: pulse 0.6s ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
