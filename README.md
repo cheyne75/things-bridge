@@ -15,6 +15,46 @@ Things Bridge is a lightweight server that runs on your Mac and exposes your Tod
 - Auto-refreshes every 60 seconds
 - Token-based authentication
 - No build step — vanilla HTML/CSS/JS frontend
+- **Desktop client** — native Windows/macOS/Linux app built with Tauri
+
+## Desktop Client (Tauri)
+
+Things Bridge includes a native desktop client in the `client/` directory. It connects to your Things Bridge server over the network and wraps the web UI in a native window — no browser needed.
+
+### Features
+
+- Remembers your server URL between launches (auto-reconnects)
+- "Change Server..." menu item (Ctrl+, / Cmd+,) to switch servers
+- Builds to a standalone installer (MSI on Windows, DMG on macOS, DEB/AppImage on Linux)
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (stable toolchain)
+- [Tauri CLI](https://v2.tauri.app/start/prerequisites/) prerequisites for your platform (on Windows: WebView2, Visual Studio Build Tools)
+
+### Development
+
+```bash
+cd client
+cargo tauri dev
+```
+
+This launches the app in development mode with hot reload.
+
+### Building an Installer
+
+```bash
+cd client
+cargo tauri build
+```
+
+The installer will be output to `client/src-tauri/target/release/bundle/`:
+
+| Platform | Installer location |
+|----------|-------------------|
+| Windows  | `nsis/Things Bridge_1.0.0_x64-setup.exe` and `msi/Things Bridge_1.0.0_x64_en-US.msi` |
+| macOS    | `dmg/Things Bridge_1.0.0_aarch64.dmg` |
+| Linux    | `deb/` and `appimage/` |
 
 ## How It Works
 
@@ -145,6 +185,15 @@ things-bridge/
     index.html         # Web UI shell
     app.js             # Client-side logic (vanilla JS)
     styles.css         # Things 3-inspired styling
+  client/
+    package.json       # Tauri dev/build scripts
+    src/
+      index.html       # Connection setup UI
+    src-tauri/
+      Cargo.toml       # Rust dependencies
+      tauri.conf.json  # Tauri app config (window size, bundling, etc.)
+      src/
+        main.rs        # Tauri backend — server discovery, navigation, config persistence
 ```
 
 ## Limitations

@@ -3,3 +3,6 @@
 __pycache__/
 *.pyc
 order.json
+client/src-tauri/target/
+client/src-tauri/gen/
+.claude/
