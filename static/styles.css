@@ -358,17 +358,25 @@ header h1 {
 
 /* Dragging state */
 .task.dragging {
-    opacity: 0.3;
-    background: var(--bg-secondary);
+    opacity: 0.85;
+    background: var(--bg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    transition: none;
 }
 
-/* Drop indicator */
-.drop-indicator {
-    height: 2px;
-    background: var(--accent);
-    margin: 0 20px;
-    border-radius: 1px;
-    pointer-events: none;
+/* Placeholder for dragged task */
+.drag-placeholder {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    border-radius: 4px;
+    opacity: 0.5;
+}
+
+@media (hover: none) {
+    .drag-handle {
+        opacity: 0.5;
+    }
 }
 
 /* Sync bar */

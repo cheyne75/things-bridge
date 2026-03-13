@@ -123,6 +123,10 @@
             <label for="server-url">Server URL</label>
             <input type="url" id="server-url" placeholder="http://192.168.1.100:8787" autofocus>
         </div>
+        <div class="field" id="mac-field" style="display:none">
+            <label for="mac-address">MAC Address <span style="font-weight:400">(auto-detected for Wake-on-LAN)</span></label>
+            <input type="text" id="mac-address" placeholder="AA:BB:CC:DD:EE:FF" readonly>
+        </div>
         <div class="error" id="error"></div>
         <div class="status" id="status"></div>
         <button id="connect-btn">Connect</button>
@@ -132,6 +136,7 @@
         const { invoke } = window.__TAURI__.core;
 
         const urlInput = document.getElementById("server-url");
+        const macInput = document.getElementById("mac-address");
         const errorEl = document.getElementById("error");
         const statusEl = document.getElementById("status");
         const connectBtn = document.getElementById("connect-btn");
@@ -153,23 +158,58 @@
             statusEl.classList.remove("visible");
         }
 
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function tryWakeAndConnect(url, mac) {
+            showStatus("Waking server...");
+            try {
+                await invoke("wake_server", { macAddress: mac });
+            } catch (e) {
+                showError("Failed to send wake packet: " + e);
+                return false;
+            }
+            for (let i = 0; i < 15; i++) {
+                await sleep(1000);
+                showStatus(`Waiting for server... (${i + 1}s)`);
+                const up = await invoke("check_server", { url });
+                if (up) return true;
+            }
+            return false;
+        }
+
         async function connect() {
             const url = urlInput.value.trim().replace(/\/+$/, "");
             if (!url) {
                 showError("Please enter a server URL.");
                 return;
             }
+            const mac = macInput.value.trim();
 
             connectBtn.disabled = true;
             connectBtn.textContent = "Connecting...";
             hideMessages();
 
             try {
-                const reachable = await invoke("check_server", { url });
+                let reachable = await invoke("check_server", { url });
+
+                if (!reachable && mac) {
+                    reachable = await tryWakeAndConnect(url, mac);
+                }
+
                 if (!reachable) {
                     showError("Cannot reach server. Check the URL and try again.");
                     return;
                 }
+
+                // Auto-discover and save MAC for future WOL
+                try {
+                    const discoveredMac = await invoke("fetch_server_mac", { url });
+                    if (discoveredMac) {
+                        await invoke("save_mac_address", { macAddress: discoveredMac });
+                    }
+                } catch (_) { /* non-critical */ }
 
                 showStatus("Connected! Loading...");
                 await invoke("connect_to_server", { url });
@@ -190,12 +230,23 @@
         async function init() {
             try {
                 const saved = await invoke("get_server_url");
+                const savedMac = await invoke("get_mac_address");
+                if (savedMac) {
+                    macInput.value = savedMac;
+                    document.getElementById("mac-field").style.display = "";
+                }
+
                 if (saved) {
                     urlInput.value = saved;
                     showStatus("Reconnecting...");
                     connectBtn.disabled = true;
 
-                    const reachable = await invoke("check_server", { url: saved });
+                    let reachable = await invoke("check_server", { url: saved });
+
+                    if (!reachable && savedMac) {
+                        reachable = await tryWakeAndConnect(saved, savedMac);
+                    }
+
                     if (reachable) {
                         await invoke("connect_to_server", { url: saved });
                         return;

@@ -1,4 +1,5 @@
 import logging
+import uuid as uuid_lib
 
 from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +51,13 @@ class OrderUpdate(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "things-bridge"}
+
+
+@app.get("/mac")
+async def get_mac():
+    mac = uuid_lib.getnode()
+    mac_str = ":".join(f"{(mac >> (8 * i)) & 0xFF:02X}" for i in range(5, -1, -1))
+    return {"mac": mac_str}
 
 
 @api.get("/today")
