@@ -231,6 +231,8 @@
             document.documentElement.setAttribute("data-theme", theme);
             const btn = document.getElementById("theme-toggle-btn");
             if (btn) btn.innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+            // Update native title bar
+            invoke("set_window_theme", { theme }).catch(() => {});
             // Push theme into iframe, but not if iframe initiated it
             if (notifyIframe) {
                 const frame = document.getElementById("server-frame");
