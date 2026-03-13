@@ -6,3 +6,4 @@ order.json
 client/src-tauri/target/
 client/src-tauri/gen/
 .claude/
+push-pr.bat
