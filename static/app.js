@@ -1,8 +1,40 @@
 const TOKEN_KEY = "things_bridge_token";
+const THEME_KEY = "things_bridge_theme";
 
 let currentTasks = [];
 let isDragging = false;
 let dragState = null;
+
+// --- Theme management ---
+
+function getPreferredTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) return saved;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+const SUN_ICON = '<svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-3a1 1 0 001-1V1a1 1 0 00-2 0v2a1 1 0 001 1zm0 18a1 1 0 00-1 1v2a1 1 0 002 0v-2a1 1 0 00-1-1zM4.22 5.64l1.42-1.42a1 1 0 00-1.42-1.42L2.81 4.22a1 1 0 001.41 1.42zM18.36 19.78l1.42-1.42a1 1 0 00-1.42-1.42l-1.41 1.42a1 1 0 001.41 1.42zM4 12a1 1 0 00-1-1H1a1 1 0 000 2h2a1 1 0 001-1zm19-1h-2a1 1 0 000 2h2a1 1 0 000-2zM5.64 19.78a1 1 0 001.42-1.42l-1.42-1.42a1 1 0 00-1.42 1.42l1.42 1.42zM19.78 5.64a1 1 0 00-1.42-1.42l-1.42 1.42a1 1 0 001.42 1.42l1.42-1.42z"/></svg>';
+const MOON_ICON = '<svg viewBox="0 0 24 24"><path d="M21.64 13a1 1 0 00-1.05-.14 8.05 8.05 0 01-3.37.73A8.15 8.15 0 019.08 5.49a8.59 8.59 0 01.25-2 1 1 0 00-1.33-1.17A10 10 0 1022.78 14.05a1 1 0 00-1.14-1.05z"/></svg>';
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    const btn = document.getElementById("theme-toggle");
+    if (btn) btn.innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+    // Notify parent (Tauri) frame of theme change
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: "theme-change", theme }, "*");
+    }
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute("data-theme") || "light";
+    const next = current === "dark" ? "light" : "dark";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+}
+
+// Apply theme immediately to avoid flash
+applyTheme(getPreferredTheme());
 
 // --- Token management ---
 
@@ -417,6 +449,17 @@ function init() {
     document.getElementById("token-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             document.getElementById("token-save").click();
+        }
+    });
+
+    // Theme toggle
+    document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+
+    // Listen for theme changes from parent (Tauri) frame
+    window.addEventListener("message", (e) => {
+        if (e.data && e.data.type === "set-theme") {
+            localStorage.setItem(THEME_KEY, e.data.theme);
+            applyTheme(e.data.theme);
         }
     });
 
