@@ -22,10 +22,49 @@
             background: var(--bg-secondary);
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
+        }
+
+        #setup-view {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+        }
+
+        #server-view {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #menu-bar {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        #menu-bar button {
+            width: auto;
+            padding: 5px 14px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 400;
+            border-radius: 6px;
+        }
+
+        #menu-bar button:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        #server-frame {
+            width: 100%;
+            flex: 1;
+            border: none;
         }
 
         .setup-card {
@@ -116,30 +155,58 @@
     </style>
 </head>
 <body>
-    <div class="setup-card">
-        <h2>Things Bridge</h2>
-        <p class="subtitle">Connect to your Things Bridge server.</p>
-        <div class="field">
-            <label for="server-url">Server URL</label>
-            <input type="url" id="server-url" placeholder="http://192.168.1.100:8787" autofocus>
+    <div id="setup-view">
+        <div class="setup-card">
+            <h2>Things Bridge</h2>
+            <p class="subtitle">Connect to your Things Bridge server.</p>
+            <div class="field">
+                <label for="server-url">Server URL</label>
+                <input type="url" id="server-url" placeholder="http://192.168.1.100:8787" autofocus>
+            </div>
+            <div class="field" id="mac-field" style="display:none">
+                <label for="mac-address">MAC Address <span style="font-weight:400">(auto-detected for Wake-on-LAN)</span></label>
+                <input type="text" id="mac-address" placeholder="AA:BB:CC:DD:EE:FF" readonly>
+            </div>
+            <div class="error" id="error"></div>
+            <div class="status" id="status"></div>
+            <button id="connect-btn">Connect</button>
         </div>
-        <div class="field" id="mac-field" style="display:none">
-            <label for="mac-address">MAC Address <span style="font-weight:400">(auto-detected for Wake-on-LAN)</span></label>
-            <input type="text" id="mac-address" placeholder="AA:BB:CC:DD:EE:FF" readonly>
+    </div>
+
+    <div id="server-view">
+        <div id="menu-bar">
+            <button id="change-server-btn">Change Server</button>
         </div>
-        <div class="error" id="error"></div>
-        <div class="status" id="status"></div>
-        <button id="connect-btn">Connect</button>
+        <iframe id="server-frame"></iframe>
     </div>
 
     <script>
         const { invoke } = window.__TAURI__.core;
+        const { listen } = window.__TAURI__.event;
 
+        const setupView = document.getElementById("setup-view");
+        const serverView = document.getElementById("server-view");
+        const serverFrame = document.getElementById("server-frame");
         const urlInput = document.getElementById("server-url");
         const macInput = document.getElementById("mac-address");
         const errorEl = document.getElementById("error");
         const statusEl = document.getElementById("status");
         const connectBtn = document.getElementById("connect-btn");
+
+        function showSetup() {
+            serverView.style.display = "none";
+            serverFrame.src = "";
+            setupView.style.display = "flex";
+            connectBtn.disabled = false;
+            connectBtn.textContent = "Connect";
+            hideMessages();
+        }
+
+        function showServer(url) {
+            setupView.style.display = "none";
+            serverFrame.src = url;
+            serverView.style.display = "flex";
+        }
 
         function showError(msg) {
             errorEl.textContent = msg;
@@ -179,12 +246,7 @@
             return false;
         }
 
-        async function connect() {
-            const url = urlInput.value.trim().replace(/\/+$/, "");
-            if (!url) {
-                showError("Please enter a server URL.");
-                return;
-            }
+        async function connectToServer(url) {
             const mac = macInput.value.trim();
 
             connectBtn.disabled = true;
@@ -211,8 +273,8 @@
                     }
                 } catch (_) { /* non-critical */ }
 
-                showStatus("Connected! Loading...");
-                await invoke("connect_to_server", { url });
+                await invoke("save_server_url", { url });
+                showServer(url);
             } catch (e) {
                 showError("Connection failed: " + e);
             } finally {
@@ -221,10 +283,23 @@
             }
         }
 
+        async function connect() {
+            const url = urlInput.value.trim().replace(/\/+$/, "");
+            if (!url) {
+                showError("Please enter a server URL.");
+                return;
+            }
+            await connectToServer(url);
+        }
+
         connectBtn.addEventListener("click", connect);
         urlInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") connect();
         });
+
+        // "Change Server" from HTML button or Rust menu event
+        document.getElementById("change-server-btn").addEventListener("click", showSetup);
+        listen("change-server", () => showSetup());
 
         // On load, check for saved URL and auto-connect
         async function init() {
@@ -248,7 +323,8 @@
                     }
 
                     if (reachable) {
-                        await invoke("connect_to_server", { url: saved });
+                        await invoke("save_server_url", { url: saved });
+                        showServer(saved);
                         return;
                     }
                     showError("Saved server not reachable. Update the URL and reconnect.");

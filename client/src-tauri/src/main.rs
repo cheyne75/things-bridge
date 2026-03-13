@@ -4,9 +4,14 @@
 use std::fs;
 use std::net::UdpSocket;
 use std::path::PathBuf;
-use tauri::Manager;
-use tauri::menu::{MenuBuilder, MenuItemBuilder};
-use tauri::Url;
+use std::time::Duration;
+
+fn http_client() -> reqwest::blocking::Client {
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .unwrap_or_else(|_| reqwest::blocking::Client::new())
+}
 
 fn config_path() -> PathBuf {
     let config_dir = dirs::config_dir()
@@ -45,21 +50,20 @@ fn get_server_url() -> Option<String> {
 }
 
 #[tauri::command]
-fn check_server(url: String) -> bool {
-    let health_url = format!("{}/health", url.trim_end_matches('/'));
-    reqwest::blocking::get(&health_url)
-        .map(|r| r.status().is_success())
-        .unwrap_or(false)
+fn save_server_url(url: String) {
+    let mut config = load_config();
+    config.server_url = Some(url);
+    save_config(&config);
 }
 
 #[tauri::command]
-fn connect_to_server(url: String, window: tauri::WebviewWindow) -> Result<(), String> {
-    let mut config = load_config();
-    config.server_url = Some(url.clone());
-    save_config(&config);
-
-    let parsed = Url::parse(&url).map_err(|e| e.to_string())?;
-    window.navigate(parsed).map_err(|e| e.to_string())
+fn check_server(url: String) -> bool {
+    let health_url = format!("{}/health", url.trim_end_matches('/'));
+    http_client()
+        .get(&health_url)
+        .send()
+        .map(|r| r.status().is_success())
+        .unwrap_or(false)
 }
 
 fn send_wol(mac: &str) -> Result<(), String> {
@@ -96,7 +100,7 @@ fn wake_server(mac_address: String) -> Result<(), String> {
 #[tauri::command]
 fn fetch_server_mac(url: String) -> Option<String> {
     let mac_url = format!("{}/mac", url.trim_end_matches('/'));
-    let resp = reqwest::blocking::get(&mac_url).ok()?;
+    let resp = http_client().get(&mac_url).send().ok()?;
     let json: serde_json::Value = resp.json().ok()?;
     json["mac"].as_str().map(|s| s.to_string())
 }
@@ -117,43 +121,13 @@ fn save_mac_address(mac_address: String) {
     save_config(&config);
 }
 
-fn navigate_to_setup(app_handle: &tauri::AppHandle) {
-    let mut config = load_config();
-    config.server_url = None;
-    save_config(&config);
-
-    if let Some(window) = app_handle.get_webview_window("main") {
-        let asset_url: Url = "tauri://localhost".parse().unwrap();
-        window.navigate(asset_url).ok();
-    }
-}
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
-            let change_server = MenuItemBuilder::with_id("change_server", "Change Server...")
-                .accelerator("CmdOrCtrl+,")
-                .build(app)?;
-
-            let menu = MenuBuilder::new(app)
-                .item(&change_server)
-                .build()?;
-
-            app.set_menu(menu)?;
-
-            app.on_menu_event(move |app_handle, event| {
-                if event.id().as_ref() == "change_server" {
-                    navigate_to_setup(app_handle);
-                }
-            });
-
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             get_server_url,
+            save_server_url,
             check_server,
-            connect_to_server,
             wake_server,
             fetch_server_mac,
             get_mac_address,
