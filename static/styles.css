@@ -8,6 +8,27 @@
     --border: #e5e5e7;
     --checkbox-size: 22px;
     --danger: #e55;
+    --shadow-color: rgba(0, 0, 0, 0.06);
+    --drag-shadow: rgba(0, 0, 0, 0.12);
+    --checkbox-border: #c8c8cc;
+    --notes-placeholder: #c8c8cc;
+    --cancel-hover: #d5d5d7;
+}
+
+[data-theme="dark"] {
+    --bg: #1c1c1e;
+    --bg-secondary: #2c2c2e;
+    --text-primary: #f5f5f7;
+    --text-secondary: #98989f;
+    --accent: #5a9ee6;
+    --accent-hover: #6db0f5;
+    --border: #3a3a3c;
+    --danger: #ff6b6b;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --drag-shadow: rgba(0, 0, 0, 0.4);
+    --checkbox-border: #636366;
+    --notes-placeholder: #636366;
+    --cancel-hover: #48484a;
 }
 
 * {
@@ -28,7 +49,7 @@ body {
     margin: 0 auto;
     background: var(--bg);
     min-height: 100vh;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 0 40px var(--shadow-color);
 }
 
 /* Token prompt */
@@ -70,6 +91,8 @@ body {
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .token-card input:focus {
@@ -160,6 +183,7 @@ header h1 {
     outline: none;
     margin-bottom: 10px;
     background: var(--bg);
+    color: var(--text-primary);
 }
 
 #new-task-title:focus {
@@ -189,7 +213,7 @@ header h1 {
 }
 
 .btn-cancel:hover {
-    background: #d5d5d7;
+    background: var(--cancel-hover);
 }
 
 .btn-create {
@@ -234,7 +258,7 @@ header h1 {
     -webkit-appearance: none;
     width: var(--checkbox-size);
     height: var(--checkbox-size);
-    border: 2px solid #c8c8cc;
+    border: 2px solid var(--checkbox-border);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
@@ -295,7 +319,7 @@ header h1 {
 
 .task-notes:empty::before {
     content: "Add notes...";
-    color: #c8c8cc;
+    color: var(--notes-placeholder);
 }
 
 .task-notes:focus {
@@ -339,7 +363,7 @@ header h1 {
     align-items: center;
     justify-content: center;
     cursor: grab;
-    color: #c8c8cc;
+    color: var(--checkbox-border);
     font-size: 14px;
     letter-spacing: 2px;
     user-select: none;
@@ -360,7 +384,7 @@ header h1 {
 .task.dragging {
     opacity: 0.85;
     background: var(--bg);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 16px var(--drag-shadow);
     border-radius: 8px;
     transition: none;
 }
@@ -420,4 +444,31 @@ header h1 {
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.15); }
+}
+
+/* Theme toggle */
+.theme-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+    margin-right: 8px;
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.theme-toggle:hover {
+    background: var(--border);
+    color: var(--text-primary);
 }

@@ -20,7 +20,10 @@
         <div id="main" class="hidden">
             <header>
                 <h1>Today</h1>
-                <button id="add-task-btn" title="Add Task">+</button>
+                <div style="display:flex;align-items:center;gap:4px">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode"></button>
+                    <button id="add-task-btn" title="Add Task">+</button>
+                </div>
             </header>
             <div id="add-task-form" class="hidden">
                 <input type="text" id="new-task-title" placeholder="New To-Do">

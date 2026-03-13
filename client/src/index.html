@@ -15,6 +15,17 @@
             --border: #e5e5e7;
         }
 
+        [data-theme="dark"] {
+            --bg: #1c1c1e;
+            --bg-secondary: #2c2c2e;
+            --text-primary: #f5f5f7;
+            --text-secondary: #98989f;
+            --accent: #5a9ee6;
+            --accent-hover: #6db0f5;
+            --border: #3a3a3c;
+            --danger: #ff6b6b;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -61,6 +72,23 @@
             color: var(--text-primary);
         }
 
+        #theme-toggle-btn {
+            width: 32px;
+            height: 32px;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+        }
+
+        #theme-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
         #server-frame {
             width: 100%;
             flex: 1;
@@ -72,7 +100,7 @@
             border-radius: 12px;
             padding: 40px;
             text-align: center;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
             width: 380px;
         }
 
@@ -109,6 +137,8 @@
             font-size: 14px;
             outline: none;
             transition: border-color 0.2s;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
 
         .field input:focus {
@@ -116,7 +146,7 @@
         }
 
         .error {
-            color: #e55;
+            color: var(--danger, #e55);
             font-size: 13px;
             margin-bottom: 12px;
             display: none;
@@ -176,6 +206,8 @@
     <div id="server-view">
         <div id="menu-bar">
             <button id="change-server-btn">Change Server</button>
+            <span style="flex:1"></span>
+            <button id="theme-toggle-btn" title="Toggle dark mode"></button>
         </div>
         <iframe id="server-frame"></iframe>
     </div>
@@ -183,6 +215,46 @@
     <script>
         const { invoke } = window.__TAURI__.core;
         const { listen } = window.__TAURI__.event;
+
+        const THEME_KEY = "things_bridge_theme";
+
+        function getPreferredTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (saved) return saved;
+            return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+
+        const SUN_ICON = '<svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-3a1 1 0 001-1V1a1 1 0 00-2 0v2a1 1 0 001 1zm0 18a1 1 0 00-1 1v2a1 1 0 002 0v-2a1 1 0 00-1-1zM4.22 5.64l1.42-1.42a1 1 0 00-1.42-1.42L2.81 4.22a1 1 0 001.41 1.42zM18.36 19.78l1.42-1.42a1 1 0 00-1.42-1.42l-1.41 1.42a1 1 0 001.41 1.42zM4 12a1 1 0 00-1-1H1a1 1 0 000 2h2a1 1 0 001-1zm19-1h-2a1 1 0 000 2h2a1 1 0 000-2zM5.64 19.78a1 1 0 001.42-1.42l-1.42-1.42a1 1 0 00-1.42 1.42l1.42 1.42zM19.78 5.64a1 1 0 00-1.42-1.42l-1.42 1.42a1 1 0 001.42 1.42l1.42-1.42z"/></svg>';
+        const MOON_ICON = '<svg viewBox="0 0 24 24"><path d="M21.64 13a1 1 0 00-1.05-.14 8.05 8.05 0 01-3.37.73A8.15 8.15 0 019.08 5.49a8.59 8.59 0 01.25-2 1 1 0 00-1.33-1.17A10 10 0 1022.78 14.05a1 1 0 00-1.14-1.05z"/></svg>';
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute("data-theme", theme);
+            const btn = document.getElementById("theme-toggle-btn");
+            if (btn) btn.innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+            // Push theme into iframe
+            const frame = document.getElementById("server-frame");
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: "set-theme", theme }, "*");
+            }
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute("data-theme") || "light";
+            const next = current === "dark" ? "light" : "dark";
+            localStorage.setItem(THEME_KEY, next);
+            applyTheme(next);
+        }
+
+        // Apply theme immediately
+        applyTheme(getPreferredTheme());
+
+        // Listen for theme changes from the iframe
+        window.addEventListener("message", (e) => {
+            if (e.data && e.data.type === "theme-change") {
+                localStorage.setItem(THEME_KEY, e.data.theme);
+                applyTheme(e.data.theme);
+            }
+        });
 
         const setupView = document.getElementById("setup-view");
         const serverView = document.getElementById("server-view");
@@ -295,6 +367,16 @@
         connectBtn.addEventListener("click", connect);
         urlInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") connect();
+        });
+
+        document.getElementById("theme-toggle-btn").addEventListener("click", toggleTheme);
+
+        // Push theme to iframe once it loads
+        serverFrame.addEventListener("load", () => {
+            const theme = document.documentElement.getAttribute("data-theme") || "light";
+            if (serverFrame.contentWindow) {
+                serverFrame.contentWindow.postMessage({ type: "set-theme", theme }, "*");
+            }
         });
 
         // "Change Server" from HTML button or Rust menu event
