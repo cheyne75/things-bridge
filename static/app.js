@@ -2,7 +2,7 @@ const TOKEN_KEY = "things_bridge_token";
 
 let currentTasks = [];
 let isDragging = false;
-let draggedElement = null;
+let dragState = null;
 
 // --- Token management ---
 
@@ -142,79 +142,138 @@ function attachTaskListeners() {
         el.addEventListener("blur", () => handleNotesBlur(el));
     });
 
-    // Drag-and-drop: only initiate drag from the handle
+    // Drag-and-drop via pointer events (works in browsers and WebView2)
     document.querySelectorAll(".task:not(.completed)").forEach((taskEl) => {
-        taskEl.addEventListener("mousedown", (e) => {
-            if (e.target.closest(".drag-handle")) {
-                taskEl.setAttribute("draggable", "true");
-            } else {
-                taskEl.removeAttribute("draggable");
-            }
+        const handle = taskEl.querySelector(".drag-handle");
+        if (!handle) return;
+
+        handle.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            startDrag(taskEl, e.clientY);
         });
 
-        taskEl.addEventListener("dragstart", handleDragStart);
-        taskEl.addEventListener("dragend", handleDragEnd);
-        taskEl.addEventListener("dragover", handleDragOver);
-        taskEl.addEventListener("dragleave", handleDragLeave);
-        taskEl.addEventListener("drop", handleDrop);
+        handle.addEventListener("touchstart", (e) => {
+            if (e.touches.length !== 1) return;
+            e.preventDefault();
+            startDrag(taskEl, e.touches[0].clientY);
+        }, { passive: false });
     });
 }
 
 // --- Drag and drop ---
 
-function handleDragStart(e) {
+function startDrag(el, clientY) {
     isDragging = true;
-    draggedElement = this;
-    this.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", this.dataset.uuid);
+    const rect = el.getBoundingClientRect();
+    const offsetY = clientY - rect.top;
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "drag-placeholder";
+    placeholder.style.height = rect.height + "px";
+    el.parentNode.insertBefore(placeholder, el);
+
+    el.classList.add("dragging");
+    el.style.position = "fixed";
+    el.style.width = rect.width + "px";
+    el.style.top = (clientY - offsetY) + "px";
+    el.style.left = rect.left + "px";
+    el.style.zIndex = "1000";
+    el.style.pointerEvents = "none";
+
+    dragState = { el, offsetY, placeholder, scrollInterval: null };
+
+    document.addEventListener("mousemove", onDragMove);
+    document.addEventListener("mouseup", onDragEnd);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onDragEnd);
 }
 
-function handleDragEnd() {
+function onDragMove(e) {
+    moveDrag(e.clientY);
+}
+
+function onTouchMove(e) {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    moveDrag(e.touches[0].clientY);
+}
+
+function moveDrag(clientY) {
+    if (!dragState) return;
+    const { el, offsetY, placeholder } = dragState;
+
+    el.style.top = (clientY - offsetY) + "px";
+
+    // Auto-scroll near edges
+    if (dragState.scrollInterval) {
+        clearInterval(dragState.scrollInterval);
+        dragState.scrollInterval = null;
+    }
+    const threshold = 50;
+    const speed = 8;
+    if (clientY < threshold) {
+        dragState.scrollInterval = setInterval(() => window.scrollBy(0, -speed), 16);
+    } else if (clientY > window.innerHeight - threshold) {
+        dragState.scrollInterval = setInterval(() => window.scrollBy(0, speed), 16);
+    }
+
+    // Find insertion point among incomplete tasks
+    const tasks = Array.from(
+        document.querySelectorAll(".task:not(.completed):not(.dragging)")
+    );
+    const list = document.getElementById("task-list");
+
+    let insertBefore = null;
+    for (const task of tasks) {
+        const rect = task.getBoundingClientRect();
+        if (clientY < rect.top + rect.height / 2) {
+            insertBefore = task;
+            break;
+        }
+    }
+
+    if (insertBefore) {
+        list.insertBefore(placeholder, insertBefore);
+    } else {
+        const divider = list.querySelector(".completed-divider");
+        if (divider) {
+            list.insertBefore(placeholder, divider);
+        } else {
+            const firstCompleted = list.querySelector(".task.completed");
+            if (firstCompleted) {
+                list.insertBefore(placeholder, firstCompleted);
+            } else {
+                list.appendChild(placeholder);
+            }
+        }
+    }
+}
+
+function onDragEnd() {
+    if (!dragState) return;
+    const { el, placeholder, scrollInterval } = dragState;
+
+    if (scrollInterval) clearInterval(scrollInterval);
+
+    placeholder.parentNode.insertBefore(el, placeholder);
+    placeholder.remove();
+
+    el.classList.remove("dragging");
+    el.style.position = "";
+    el.style.width = "";
+    el.style.top = "";
+    el.style.left = "";
+    el.style.zIndex = "";
+    el.style.pointerEvents = "";
+
+    document.removeEventListener("mousemove", onDragMove);
+    document.removeEventListener("mouseup", onDragEnd);
+    document.removeEventListener("touchmove", onTouchMove);
+    document.removeEventListener("touchend", onDragEnd);
+
+    dragState = null;
     isDragging = false;
-    if (draggedElement) draggedElement.classList.remove("dragging");
-    draggedElement = null;
-    document.querySelectorAll(".drop-indicator").forEach((el) => el.remove());
-}
 
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (this === draggedElement || this.classList.contains("completed")) return;
-
-    // Remove existing indicators
-    document.querySelectorAll(".drop-indicator").forEach((el) => el.remove());
-
-    const rect = this.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const indicator = document.createElement("div");
-    indicator.className = "drop-indicator";
-
-    if (e.clientY < midY) {
-        this.parentNode.insertBefore(indicator, this);
-    } else {
-        this.parentNode.insertBefore(indicator, this.nextSibling);
-    }
-}
-
-function handleDragLeave() {
-    // Indicators cleaned up in dragover/drop/dragend
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    if (this === draggedElement || this.classList.contains("completed")) return;
-
-    const rect = this.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-
-    if (e.clientY < midY) {
-        this.parentNode.insertBefore(draggedElement, this);
-    } else {
-        this.parentNode.insertBefore(draggedElement, this.nextSibling);
-    }
-
-    document.querySelectorAll(".drop-indicator").forEach((el) => el.remove());
     saveNewOrder();
 }
 

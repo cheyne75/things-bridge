@@ -43,6 +43,31 @@ def clear_order() -> None:
         pass
 
 
+def _get_things_display_order() -> list[str]:
+    """Get task UUIDs in Things' actual display order via AppleScript."""
+    script = '''
+    tell application "Things3"
+        set todayToDos to to dos of list "Today"
+        set uuids to {}
+        repeat with td in todayToDos
+            set end of uuids to id of td
+        end repeat
+        set AppleScript's text item delimiters to linefeed
+        return uuids as text
+    end tell
+    '''
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().split("\n")
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return []
+
+
 def get_today_tasks() -> list[dict]:
     incomplete = things.today()
     today_str = date.today().isoformat()
@@ -51,13 +76,19 @@ def get_today_tasks() -> list[dict]:
     saved_order = load_order()
     task_map = {t["uuid"]: t for t in incomplete}
 
-    # Tasks in saved order that still exist
     ordered = []
-    for uuid in saved_order:
-        if uuid in task_map:
-            ordered.append(_normalize_task(task_map.pop(uuid)))
+    if saved_order:
+        # Use drag-and-drop custom order
+        for uuid in saved_order:
+            if uuid in task_map:
+                ordered.append(_normalize_task(task_map.pop(uuid)))
+    else:
+        # Use Things' actual display order via AppleScript
+        for uuid in _get_things_display_order():
+            if uuid in task_map:
+                ordered.append(_normalize_task(task_map.pop(uuid)))
 
-    # New tasks not in saved order, in Things' native order
+    # Any remaining tasks not covered by the ordering
     for t in incomplete:
         if t["uuid"] in task_map:
             ordered.append(_normalize_task(t))
