@@ -5,6 +5,7 @@ use std::fs;
 use std::net::UdpSocket;
 use std::path::PathBuf;
 use std::time::Duration;
+use tauri::Manager;
 
 fn http_client() -> reqwest::blocking::Client {
     reqwest::blocking::Client::builder()
@@ -121,6 +122,18 @@ fn save_mac_address(mac_address: String) {
     save_config(&config);
 }
 
+#[tauri::command]
+fn set_window_theme(app: tauri::AppHandle, theme: String) {
+    if let Some(window) = app.get_webview_window("main") {
+        let t = if theme == "dark" {
+            tauri::Theme::Dark
+        } else {
+            tauri::Theme::Light
+        };
+        window.set_theme(Some(t)).ok();
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -131,7 +144,8 @@ fn main() {
             wake_server,
             fetch_server_mac,
             get_mac_address,
-            save_mac_address
+            save_mac_address,
+            set_window_theme
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
